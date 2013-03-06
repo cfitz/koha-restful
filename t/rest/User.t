@@ -1,9 +1,10 @@
 #!/usr/bin/perl
 
 use Modern::Perl;
-use Test::More tests => 52;
+use Test::More tests => 64;
 use Test::MockModule;
 use Test::WWW::Mechanize::CGIApp;
+use Data::Dumper;
 
 use Koha::REST::User;
 use DateTime::Format::DateParse;
@@ -24,12 +25,16 @@ $c4_members_module->mock('GetPendingIssues',
     \&mock_c4_members_GetPendingIssues);
 $c4_reserves_module->mock('GetReservesFromBorrowernumber',
     \&mock_c4_reserves_GetReservesFromBorrowernumber);
+$c4_reserves_module->mock('CancelReserves', 
+	\&mock_c4_reserves_GetReservesFromBorrowernumber);
+$c4_circulation_module->mock("AddRenewal", \&mock_c4_circulation_AddRenewal);
 $c4_circulation_module->mock('CanBookBeRenewed',
     \&mock_c4_circulation_CanBookBeRenewed);
-
+$c4_circulation_module->mock('GetItemIssue',
+	    \&mock_c4_circulation_GetItemIssue);
 my (%items_by_itemnumber, %branchnames_by_branchcode, %borrowers_by_username,
     %biblios_by_biblionumber, %issues_by_borrowernumber,
-    %reserves_by_borrowernumber, %is_item_renewable_by_borrowernumber);
+    %reserves_by_borrowernumber, %is_item_renewable_by_borrowernumber, %item_renewal);
 
 
 # Tests
@@ -37,12 +42,28 @@ my (%items_by_itemnumber, %branchnames_by_branchcode, %borrowers_by_username,
 my $mech = Test::WWW::Mechanize::CGIApp->new;
 $mech->app('Koha::REST::Dispatch');
 
-## /user/:user_name/holds
+my $path; 
+my $output;
+## /user/:user_name
+## GET patron information
+$path = "/user/:user_name";
 
-my $path = "/user/:user_name/holds";
+$mech -> get_ok('/user/user1');
+$output = from_json($mech->response->content);
+is(ref $output, 'ARRAY', "/user/user1 response is an array of size ".(scalar @$output));
+
+## /user/byid/1
+$path = "/user/byid/1";
+$mech -> get_ok('/user/byid/1');
+$output = from_json($mech->response->content);
+is(ref $output, 'ARRAY', "/user/byid/1 response is an array of size ".(scalar @$output));
+
+## /user/:user_name/holds
+## GET patron's holds.
+$path = "/user/:user_name/holds";
 
 $mech->get_ok('/user/user1/holds');
-my $output = from_json($mech->response->content);
+$output = from_json($mech->response->content);
 is(ref $output, 'ARRAY', "$path response is an array");
 is(scalar @$output, 2, "$path response contains the good number of holds");
 foreach my $key (qw(hold_id rank reservedate biblionumber branchcode itemnumber
@@ -52,8 +73,21 @@ foreach my $key (qw(hold_id rank reservedate biblionumber branchcode itemnumber
     ok(exists $output->[1]->{$key}, "$path second hold contain key '$key'");
 }
 
-## /user/:user_name/issues
+## DELETE PATRONS HOLDS
+$path = "/user/:user_name/holds/biblio/:biblionumber";
+$mech->delete('/user/user1/holds/biblio/1');
+$output = from_json($mech->response->content);
+is( $output->{"code"}, "Canceled", "$path response shows deletes teh biblio hold");
+is( $mech->status, 200, "DELETE the hold is OK" );
 
+$path = "/user/:user_name/holds/item/:itemonumber";
+$mech->delete('/user/user1/holds/item/1');
+$output = from_json($mech->response->content);
+is( $output->{"code"}, "Canceled", "$path response contains the good number of holds");
+is( $mech->status, 200, "DELETE $path" );
+
+## /user/:user_name/issues
+## GET patron's issues
 $path = "/user/:user_name/issues";
 
 $mech->get_ok('/user/user1/issues');
@@ -76,15 +110,27 @@ foreach my $i (0,1) {
     }
 }
 
+## RENEW ISSUES
+$path = "/user/:user_name/issue/:itemnumber"; 
+$mech->put("/user/user1/issue/1");
+$output = from_json($mech->response->content);
+is( $output->{"success"}, "1", "$path response shows deletes teh biblio hold ");
+is( $mech->status, 200, "DELETE the hold is OK" );
+
+$mech->put("/user/user1/issue/2");
+$output = from_json($mech->response->content);
+is( @$output[0], "on_reserve", "$path response should be an error if we can't renew the issue. ");
+is( $mech->status, 412, "DELETE the hold is not allowed" );
+
+
+
 ## /user/today and /user/all
 $mech->get_ok('/user/today');
 $output = from_json($mech->response->content);
-
 is(ref $output, 'ARRAY', "/user/today response is an array of size ".(scalar @$output));
 
 $mech->get_ok('/user/all');
 $output = from_json($mech->response->content);
-
 is(ref $output, 'ARRAY', "/user/all response is an array of size ".(scalar @$output));
 
 # Mocked subroutines
@@ -105,6 +151,7 @@ BEGIN {
             damaged => 0,
             stocknumber => 'SN0001',
             itype => 'BOOK',
+			itemnumber => '1',
         },
         2 => {
             holdingbranch => 'B3',
@@ -120,13 +167,15 @@ BEGIN {
             damaged => 1,
             stocknumber => 'SN0002',
             itype => 'BOOK',
+			itemnumber => '2',
+
         },
     );
 }
 
 sub mock_c4_items_GetItem {
     my ($itemnumber) = @_;
-
+	$itemnumber = 2 unless $itemnumber;
     return $items_by_itemnumber{$itemnumber};
 }
 
@@ -134,6 +183,7 @@ BEGIN {
     %biblios_by_biblionumber = (
         1 => {
             title => 'Biblio 1',
+			biblionumber => "1"
         },
     );
 }
@@ -181,15 +231,15 @@ BEGIN {
                 borrowernumber => 1,
                 branchcode => 'B1',
                 itemnumber => 1,
-                date_due => DateTime::Format::DateParse->parse_datetime('2012-01-07'),
-                issuedate => DateTime::Format::DateParse->parse_datetime('2012-01-01'),
+               	date_due => DateTime::Format::DateParse->parse_datetime('2012-01-07'),
+			    issuedate => DateTime::Format::DateParse->parse_datetime('2012-01-01'),
                 biblionumber => 1,
-            }, {
+            },  {
                 borrowernumber => 1,
                 branchcode => 'B2',
                 itemnumber => 2,
-                date_due => DateTime::Format::DateParse->parse_datetime('2012-04-28'),
-                issuedate => DateTime::Format::DateParse->parse_datetime('2012-04-14'),
+               	date_due => DateTime::Format::DateParse->parse_datetime('2012-04-28'),
+			    issuedate => DateTime::Format::DateParse->parse_datetime('2012-04-14'),
                 biblionumber => 1,
             },
         ],
@@ -198,9 +248,14 @@ BEGIN {
 
 sub mock_c4_members_GetPendingIssues {
     my ($borrowernumber) = @_;
-
     return $issues_by_borrowernumber{$borrowernumber};
 }
+
+sub mock_c4_circulation_GetItemIssue {
+	my $borrowernumber = 1;
+    return $issues_by_borrowernumber{$borrowernumber}[0];
+}
+
 
 BEGIN {
     %reserves_by_borrowernumber = (
@@ -244,6 +299,7 @@ BEGIN {
     );
 }
 
+
 sub mock_c4_circulation_CanBookBeRenewed {
     my ($borrowernumber, $itemnumber) = @_;
 
@@ -257,4 +313,25 @@ sub mock_c4_circulation_CanBookBeRenewed {
     }
 
     return ($can_renew, $reason);
+}
+
+BEGIN {
+	%item_renewal = (
+		1 => {
+			1 => {
+			    
+			}
+			
+		}
+	);
+}
+
+
+sub mock_c4_circulation_AddRenewal {
+	my ($borrowernumber, $itemnumber) = @_;
+    if ($item_renewal{$borrowernumber}->{$itemnumber}){
+		return [ "success", undef];
+}	else {
+		return ( undef, "Error");
+	}
 }

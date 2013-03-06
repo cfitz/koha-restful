@@ -48,6 +48,8 @@ This script provide a RESTful webservice to interact with Koha.
 
 =head1 SERVICES
 
+
+
 =head2 Infos
 
 =head3 GET branches
@@ -74,6 +76,8 @@ following keys:
 =back
 
 =back
+
+
 
 =head2 User
 
@@ -186,6 +190,148 @@ If reserve is at item level, there are two additional keys:
 =back
 
 =back
+
+
+=head3 DELETE user/:user_name/holds/biblio/:biblionumber
+
+=over 2
+
+Delete a user's title hold.
+
+Required paramters:
+
+=over 2
+
+=item * :user_name: Patron username.
+
+=item * :biblionumber: An items biblionumber
+
+=back
+
+Response 
+
+=over 2
+	
+a HTTP 200 with a  JSON hash that contains a code => "Canceled". Each hold is described by a hash with the
+following keys:
+
+=over 2
+
+=item * code: value of Canceled.
+
+=back
+
+=back
+
+=back 
+
+
+=head3 DELETE user/byid/:borrowernumber/holds/biblio/:biblionumber
+
+=over 2
+
+Delete a user's title hold.
+
+Required paramters:
+
+=over 2
+
+=item * :borrowernumber: Patron borrower number.
+
+=item * :biblionumber: An items biblionumber
+
+=back
+
+Response 
+
+=over 2
+	
+a HTTP 200 with a  JSON hash that contains a code => "Canceled". Each hold is described by a hash with the
+following keys:
+
+=over 2
+
+=item * code: value of Canceled.
+
+=back
+
+=back
+
+=back
+
+
+
+
+=head3 DELETE user/:user_name/holds/item/:itemnumber
+
+=over 2
+
+Delete a user's item hold.
+
+Required paramters:
+
+=over 2
+
+=item * :user_name: Patron username.
+
+=item * :item: An items itemnumber
+
+=back
+
+Response 
+
+=over 2
+	
+a HTTP 200 with a  JSON hash that contains a code => "Canceled". Each hold is described by a hash with the
+following keys:
+
+=over 2
+
+=item * code: value of Canceled.
+
+=back
+
+=back
+
+=back
+
+
+
+
+=head3 DELETE user/byid/:borrowernumber/holds/item/:itemnumber
+
+=over 2
+
+Delete a user's item hold.
+
+Required paramters:
+
+=over 2
+
+=item * :borrowernumber: Patron borrower number.
+
+=item * :item: An items item
+
+=back
+
+Response 
+
+=over 2
+	
+a HTTP 200 with a  JSON hash that contains a code => "Canceled". Each hold is described by a hash with the
+following keys:
+
+=over 2
+
+=item * code: value of Canceled.
+
+=back
+
+=back
+
+=back
+
+
 
 =head3 GET user/byid/:borrowernumber/issues
 
@@ -313,6 +459,82 @@ If the issue is not renewable, there is one additional key:
 
 =back
 
+
+
+=head3 PUT user/:user_name/issue/:itemnumber
+
+=over 2
+
+Renews a user's issue
+
+Required paramters:
+
+=over 2
+
+=item * :user_name: Patron username.
+
+=item * :itemnumber: An items itemnumber
+
+=back
+
+Response 
+
+=over 2
+	
+a HTTP 200 with a  JSON hash  Each hold is described by a hash with the
+following keys:
+
+=over 2
+
+=item * success: value of 1 to indicate success. Kinda stupid but whatever.
+
+=item * renewals: number of renewals the user has made on the item.
+
+=item * date_due: the revised due date of the item. 
+
+=back
+
+=back
+
+=back
+
+=head3 PUT user/byid/:borrowernumber/issue/:itemnumber
+
+=over 2
+
+Renews a user's issue
+
+Required paramters:
+
+=over 2
+
+=item * :borrowernumber: Patron borrowernumber.
+
+=item * :itemnumber: An items itemnumber
+
+=back
+
+Response 
+
+=over 2
+	
+a HTTP 200 with a  JSON hash  Each hold is described by a hash with the
+following keys:
+
+=over 2
+
+=item * success: value of 1 to indicate success. Kinda stupid but whatever.
+
+=item * renewals: number of renewals the user has made on the item.
+
+=item * date_due: the revised due date of the item. 
+
+=back
+
+=back
+
+=back
+
 =head3 GET user/today
 
 =over 2
@@ -363,7 +585,41 @@ Warning, this file will be large !!!
 
 =back
 
+
+
+
+
 =head2 Biblio
+
+
+=head3 GET biblio/:biblionumber
+
+=over 2
+
+Get a bibliographic record
+
+Required parameters:
+
+=over 2
+
+=item * biblionumber: internal biblio identifier.
+
+=back
+
+Response:
+
+=over 2
+
+a JSON hash that contains a dump of the bibliographic record. There's a lot so I'm not going to go over all the key values. Sorry. 
+
+=over 2
+
+=back
+
+=back
+
+=back
+
 
 =head3 GET biblio/:biblionumber/items
 
@@ -472,6 +728,46 @@ Actually there is no valid reasons...
 
 =back
 
+=head3 POST biblio/:biblionumber/hold
+
+=over 2
+
+Holds  a biblio is for a user.
+
+Required parameters:
+
+=over 2
+
+=item * biblionumber: internal biblio identifier.
+
+=item * borrowernumber: Patron's borrower number OR
+
+=item * user_name: Patron's user name. Either borrowernumber or user_name must be included. 
+
+=back
+
+Response:
+
+=over 2
+
+a JSON hash that contains the following keys:
+
+=over 2
+
+=item * biblionumber: is the item's biblionumber
+
+=item * title: the item's title
+
+=item * borrowernumber: Just spitting back the borrower's number. 
+
+=item * pickup_location: location that the item will be picked up at. 
+
+=back
+
+=back
+
+=back
+
 =head3 GET biblio/:biblionumber/items_holdable_status
 
 =over 2
@@ -518,6 +814,14 @@ Actually there is no valid reasons...
 
 =back
 
+
+
+
+
+
+
+
+
 =head2 Item
 
 =head3 GET item/:itemnumber/holdable
@@ -562,6 +866,50 @@ Actually there is no valid reasons...
 
 =back
 
+=head3 POST item/:itemnumber/hold
+
+=over 2
+
+Holds  an item is for a user.
+
+Required parameters:
+
+=over 2
+
+=item * itemnumber: internal item identifier.
+
+=item * borrowernumber: Patron's borrower number OR
+
+=item * user_name: Patron's user name. Either borrowernumber or user_name must be included. 
+
+=back
+
+Response:
+
+=over 2
+
+a JSON hash that contains the following keys:
+
+=over 2
+
+=item * biblionumber: is the item's biblionumber
+
+=item * title: the item's title
+
+=item * itemnumber: The item number of the item held. 
+
+=item * borrowernumber: Just spitting back the borrower's number. 
+
+=item * pickup_location: location that the item will be picked up at. 
+
+=back
+
+=back
+
+=back
+
+
+
 =head2 Auth
 
 =head3 PUT auth/change_password
@@ -595,5 +943,39 @@ a JSON array which contains one hash with the following keys:
 =back
 
 =back
+
+
+=head3 POST auth/authenticate_patron
+
+=over 2
+
+Authenticate a parton to koha. 
+
+Required parameters:
+
+=over 2
+
+=item * user_name: patron username.
+
+=item * password: user's password.
+
+=back
+
+Response:
+
+=over 2
+
+a HTTP 200 and JSON hash which contains the patrons id. Failure will get a HTTP 401.
+
+=over 2
+
+=item * id: The patron's user id. 
+
+=back
+
+=back
+
+=back
+
 
 =cut
