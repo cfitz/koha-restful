@@ -316,7 +316,7 @@ sub get_borrower {
 	my $q = $_[0];
 	
    	my $borrowernumber = $q->param('borrowernumber');
-	my $user_name => $q->param('user_name');
+	my $user_name = $q->param('user_name');
 	my $borrower;
     if ($borrowernumber) {
 		 $borrower = C4::Members::GetMember(borrowernumber => $borrowernumber);

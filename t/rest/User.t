@@ -111,13 +111,13 @@ foreach my $i (0,1) {
 }
 
 ## RENEW ISSUES
-$path = "/user/:user_name/issue/:itemnumber"; 
-$mech->put("/user/user1/issue/1");
+$path = "/user/:user_name/issues/:itemnumber"; 
+$mech->put("/user/user1/issues/1");
 $output = from_json($mech->response->content);
 is( $output->{"success"}, "1", "$path response shows deletes teh biblio hold ");
 is( $mech->status, 200, "DELETE the hold is OK" );
 
-$mech->put("/user/user1/issue/2");
+$mech->put("/user/user1/issues/2");
 $output = from_json($mech->response->content);
 is( @$output[0], "on_reserve", "$path response should be an error if we can't renew the issue. ");
 is( $mech->status, 412, "DELETE the hold is not allowed" );

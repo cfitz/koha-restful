@@ -139,7 +139,7 @@ sub rm_cancel_hold {
     	C4::Reserves::CancelReserve( undef, $itemnumber, $borrowernumber );
 	}
     
-	return format_response( $self, { code => 'Canceled' });
+	return format_response( $self, { canceled => 'true' });
 }
 
 

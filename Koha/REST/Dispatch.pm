@@ -32,7 +32,6 @@ sub dispatch_args {
 			
 			# holds
 			# Get holds
-        
 			'user/byid/:borrowernumber/holds[get]'
 	                => { app => 'User', rm => 'get_holds_byid' },
 			'user/:user_name/holds[get]'
@@ -58,9 +57,9 @@ sub dispatch_args {
 		                => { app => 'User', rm => 'get_issues' },
 			
 			# Renew Issues
-			'user/:user_name/issue/:itemnumber[put]'
+			'user/:user_name/issues/:itemnumber[put]'
 				=> { app => 'User', rm => 'renew_issue'  },
-			'user/byid/:borrowernumber/issue/:itemnumber[put]'
+			'user/byid/:borrowernumber/issues/:itemnumber[put]'
 				 => { app => 'User', rm => 'renew_issue'  },
 
 			# Get Users From Today or Get All Users
@@ -74,29 +73,38 @@ sub dispatch_args {
 			'biblio/:biblionumber[get]'
 				=> { app => 'Catalogue', rm => 'get_biblio' },
                 
-			
-			
+			# Get Items for a Biblio
             'biblio/:biblionumber/items[get]'
                 => { app => 'Catalogue', rm => 'get_biblio_items' },
+
+			# Is the Title Holdable?
             'biblio/:biblionumber/holdable[get]'
                 => { app => 'Catalogue', rm => 'biblio_is_holdable' },
 		   'biblio/:biblionumber/hold[get]' 
 						=> { app => 'Catalogue', rm => 'biblio_is_holdable' },
+						
+			# Get the holdable status of a title's items
+	    	'biblio/:biblionumber/items_holdable_status[get]'
+                => { app => 'Catalogue', rm => 'get_biblio_items_holdable_status' },
 		
+			# Make a Hold. user_name or borrowernumber are the params
 			'biblio/:biblionumber/hold[post]' 
 				=> { app => 'Catalogue', rm => 'biblio_hold' },
 		
-          
-  			'biblio/:biblionumber/items_holdable_status[get]'
-                => { app => 'Catalogue', rm => 'get_biblio_items_holdable_status' },    
-		
+        
+			# IS the Item Holdable? 
 			'item/:itemnumber/holdable[get]'
                 => { app => 'Catalogue', rm => 'item_is_holdable' },
+
+			# Place a hold on the item. user_name or borrowernumber are the required params.
 			'item/:itemnumber/hold[post]' 
 						=> { app => 'Catalogue', rm => 'item_hold' },
-						
+			
+			# Change the password. user_name and new_password are required params.		
             'auth/change_password[put]'
                 => { app => 'Auth', rm => 'put_password' },
+
+			# auth the user. user_name and password are required params. 
 			'auth/authenticate_patron[post]'
 		                => { app => 'Auth', rm => 'authenticate_patron' },
         ],
