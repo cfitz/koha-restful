@@ -91,7 +91,11 @@ sub dispatch_args {
 			'biblio/:biblionumber/hold[post]' 
 				=> { app => 'Catalogue', rm => 'biblio_hold' },
 		
-        
+      
+			# Get Items for multiple biblios
+			'items[get]'
+				=> { app => 'Catalogue', rm => 'items' },
+
 			# IS the Item Holdable? 
 			'item/:itemnumber/holdable[get]'
                 => { app => 'Catalogue', rm => 'item_is_holdable' },

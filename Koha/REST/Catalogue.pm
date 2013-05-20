@@ -25,6 +25,7 @@ sub setup {
 		'item_hold' => 'rm_hold_item',
         'item_is_holdable' => 'rm_item_is_holdable',
         'get_biblio_items_holdable_status' => 'rm_get_biblio_items_holdable_status',
+				'items' => 'rm_items',
     );
 }
 
@@ -36,6 +37,23 @@ sub items_columns {
     }
     return @items_columns;
 }
+
+sub rm_items {
+	my $self = shift;
+	my $q = $self->query();
+	my @biblionumbers =  split(",", $q->param('biblionumbers') );
+  my $results;
+  my $itemnumbers = C4::Items::get_itemnumbers_of( @biblionumbers);
+  foreach my $bib ( keys %$itemnumbers ) {
+					my $nums =  $itemnumbers->{$bib};
+  	  		$results->{$bib} = C4::Items::GetItemInfosOf( @$nums );
+ 	}
+	return format_response($self, $results);
+	
+}
+
+
+
 
 # get a biblio record for a biblio
 sub rm_get_biblio {
